@@ -1,9 +1,18 @@
 import streamlit as st
-from gtts import gTTS
-import io
 import pandas as pd
 import random
 import time
+import io
+import tempfile
+
+# === Try importing gTTS, otherwise fallback to pyttsx3 ===
+try:
+    from gtts import gTTS
+    USE_GTTS = True
+except ImportError:
+    import pyttsx3
+    USE_GTTS = False
+
 
 # === Vocabulary Database ===
 word_bank = {
@@ -40,33 +49,52 @@ word_bank = {
     }
 }
 
-# === Streamlit UI Config ===
-st.set_page_config(page_title="Deutsch Lernen A1.1", page_icon="🇩🇪", layout="wide")
-st.title("🐰 Deutsch Lernen 🇩🇪 — A1.1 Vocabulary + Quiz")
-st.caption("Learn German Words (with Audio) and Practice with Quizzes 🎯")
 
-# === Sidebar Menu ===
+# === Function: Play pronunciation (auto fallback) ===
+def play_audio(text: str):
+    if USE_GTTS:
+        try:
+            tts = gTTS(text=text, lang='de')
+            mp3_fp = io.BytesIO()
+            tts.write_to_fp(mp3_fp)
+            st.audio(mp3_fp.getvalue(), format="audio/mp3")
+        except Exception as e:
+            st.error("⚠️ Audio playback failed.")
+    else:
+        try:
+            engine = pyttsx3.init()
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+                engine.save_to_file(text, tmp.name)
+                engine.runAndWait()
+                st.audio(tmp.name, format="audio/mp3")
+        except Exception as e:
+            st.warning("⚠️ Offline audio unavailable.")
+
+
+# === Streamlit UI ===
+st.set_page_config(page_title="🇩🇪 A1.1 Deutsch Lernen", page_icon="🐰", layout="wide")
+st.title("🐰 Deutsch Lernen 🇩🇪 — A1.1 Vocabulary + Quiz")
+st.caption("🔊 Learn words, hear pronunciation, and play Bangla→German quizzes!")
+
+# === Sidebar Navigation ===
 menu = st.sidebar.radio("📚 Menu", ["🏠 Home", "📖 Vocabulary", "🎯 Quiz Game"])
 
-# === 🏠 HOME ===
+# === HOME ===
 if menu == "🏠 Home":
     st.header("🎯 Willkommen zur Deutsch Lern-App!")
     st.markdown("""
-    👉 **এই অ্যাপে তুমি শিখতে পারবে:**
-    - 🇩🇪 জার্মান শব্দ ও অর্থ  
-    - 🔊 শব্দ ও বাক্যের নেটিভ উচ্চারণ  
+    ✅ Features:
+    - 📖 Level A1.1 শব্দভাণ্ডার (বাংলা অনুবাদসহ)  
+    - 🔊 Native/Offline উচ্চারণ প্লেব্যাক  
     - 🎯 Bangla → German কুইজ গেম  
-    - 🐰 লেভেলভিত্তিক স্কোর ও অগ্রগতি  
-
-    📘 **Level:** A1.1 (Beginner)
+    - 🐰 Rabbit animations and level system  
     """)
     st.image("https://media.tenor.com/POOQOjE2aYcAAAAi/bunny-hello.gif", width=200)
 
-# === 📖 VOCABULARY ===
+# === VOCABULARY ===
 elif menu == "📖 Vocabulary":
     st.header("📘 A1.1 Vocabulary with Pronunciation 🔊")
-    level = "A1.1"
-    words = word_bank[level]
+    words = word_bank["A1.1"]
 
     for word, info in words.items():
         st.markdown(f"### 🇩🇪 {word} — 🇧🇩 {info['bangla']}")
@@ -76,24 +104,18 @@ elif menu == "📖 Vocabulary":
         col1, col2 = st.columns([1, 3])
         with col1:
             if st.button(f"🔊 Word", key=f"word_{word}"):
-                tts = gTTS(text=word, lang='de')
-                mp3_fp = io.BytesIO()
-                tts.write_to_fp(mp3_fp)
-                st.audio(mp3_fp.getvalue(), format="audio/mp3")
+                play_audio(word)
         with col2:
             if st.button(f"🎧 Sentence", key=f"sent_{word}"):
-                tts = gTTS(text=info["sentence_de"], lang='de')
-                mp3_fp = io.BytesIO()
-                tts.write_to_fp(mp3_fp)
-                st.audio(mp3_fp.getvalue(), format="audio/mp3")
+                play_audio(info["sentence_de"])
         st.markdown("---")
 
-# === 🎯 QUIZ GAME ===
+# === QUIZ GAME ===
 elif menu == "🎯 Quiz Game":
-    st.header("🎮 Bangla → German Quiz (A1.1 Level)")
+    st.header("🎮 Bangla → German Quiz (A1.1)")
     all_words = word_bank["A1.1"]
 
-    # === Initialize Session ===
+    # Session state init
     if "level" not in st.session_state:
         st.session_state.level = 1
         st.session_state.score = 0
@@ -105,9 +127,7 @@ elif menu == "🎯 Quiz Game":
         st.session_state.current_questions = []
         st.session_state.current_index = 0
 
-    # === Helper ===
-    def level_target(level):
-        return 2 + level
+    def level_target(level): return 2 + level
 
     def load_next_level():
         remaining = [(g, v) for g, v in all_words.items() if g not in st.session_state.used_words]
@@ -120,29 +140,23 @@ elif menu == "🎯 Quiz Game":
         st.session_state.current_questions = new_set
         st.session_state.current_index = 0
 
-    # === Load first level ===
     if not st.session_state.current_questions:
         load_next_level()
 
-    # === Quiz Body ===
     if st.session_state.current_index < len(st.session_state.current_questions):
         german, info = st.session_state.current_questions[st.session_state.current_index]
         bangla = info["bangla"]
-
         st.markdown(f"### 🎯 Level {st.session_state.level}")
         st.info(f"Question {st.session_state.current_index + 1}/{len(st.session_state.current_questions)}")
         st.markdown(f"**'{bangla}' শব্দটির জার্মান অনুবাদ লিখো:**")
-
         ans = st.text_input("✍️ Your German Answer:", key=f"ans_{st.session_state.level}_{st.session_state.current_index}")
-
         col1, col2 = st.columns(2)
         with col1:
             if st.button("✅ Submit"):
                 correct_ans = german.strip().lower()
                 is_correct = ans.strip().lower() == correct_ans
-
                 if is_correct:
-                    st.success("✅ Correct! Great Job!")
+                    st.success("✅ Correct!")
                     st.image("https://media.tenor.com/5nZqVYpE6m4AAAAi/cute-rabbit-thumbs-up.gif")
                     st.session_state.score += 10
                     st.session_state.correct += 1
@@ -152,7 +166,6 @@ elif menu == "🎯 Quiz Game":
                     st.image("https://media.tenor.com/bTFeixbXb2kAAAAi/sad-rabbit-no.gif")
                     st.session_state.retry_words.append((german, info))
                     st.session_state.wrong += 1
-
                 st.session_state.results.append({
                     "Level": st.session_state.level,
                     "Bangla": bangla,
@@ -176,7 +189,6 @@ elif menu == "🎯 Quiz Game":
                 st.session_state.wrong += 1
                 st.session_state.current_index += 1
                 st.rerun()
-
     else:
         st.success(f"🎉 Level {st.session_state.level} Complete!")
         df = pd.DataFrame([r for r in st.session_state.results if r["Level"] == st.session_state.level])
