@@ -1,9 +1,23 @@
 import streamlit as st
 import json
 import random
-import matplotlib.pyplot as plt
+import pandas as pd
 
+# === File paths ===
 VOCAB_FILE = "german_vocab.json"
+EXCEL_FILE = "Meine_Woerter_im_Kurs_Bangla.xlsx"
+
+# === Load Excel and initialize ===
+def load_excel():
+    try:
+        df = pd.read_excel(EXCEL_FILE)
+        df = df.dropna(subset=["German", "Bangla"])
+        vocab = {row["German"]: row["Bangla"] for _, row in df.iterrows()}
+        save_vocab(vocab)
+        return vocab
+    except Exception as e:
+        st.error(f"⚠️ Could not load Excel file: {e}")
+        return {}
 
 def load_vocab():
     try:
@@ -16,92 +30,87 @@ def save_vocab(vocab):
     with open(VOCAB_FILE, "w", encoding="utf-8") as f:
         json.dump(vocab, f, ensure_ascii=False, indent=4)
 
-# App title
+# === Streamlit Config ===
 st.set_page_config(page_title="Deutsch Wörter Lernen", page_icon="🇩🇪", layout="centered")
 st.title("🇩🇪 Deutsch Wörter Lernen (German ↔ বাংলা)")
-st.caption("Learn German words with Bangla meanings, practice quizzes, and track your progress!")
+st.caption("Learn German words from Excel, take a multiple-choice quiz, and see your result below!")
 
-# Sidebar navigation
-menu = st.sidebar.radio("📚 Menu", ["🏠 Home", "➕ Add Word", "🎯 Quiz", "📊 Progress"])
+# === Sidebar Menu ===
+menu = st.sidebar.radio("📚 Menu", ["🏠 Home", "🎯 Quiz", "🗑️ Delete Word"])
+
+# === Load Data ===
+vocab = load_excel()
+if not vocab:
+    st.warning("⚠️ No data loaded. Please make sure the Excel file exists and has columns: German | Bangla | Sentence.")
+    st.stop()
 
 # === Page 1: Home ===
 if menu == "🏠 Home":
-    vocab = load_vocab()
-    st.subheader("📘 Your Vocabulary List")
-    if vocab:
-        st.table({"🇩🇪 German Word": vocab.keys(), "🇧🇩 Bangla Meaning": vocab.values()})
-    else:
-        st.info("No words added yet. Go to ➕ Add Word.")
+    st.subheader("📘 Word List (from Excel)")
+    st.dataframe(pd.DataFrame(list(vocab.items()), columns=["🇩🇪 German", "🇧🇩 Bangla"]))
+    st.success(f"✅ Loaded {len(vocab)} words from Excel successfully!")
 
-# === Page 2: Add Word ===
-elif menu == "➕ Add Word":
-    st.subheader("➕ Add a New Word")
-    german = st.text_input("🇩🇪 German Word")
-    bangla = st.text_input("🇧🇩 Bangla Meaning")
-    if st.button("Save Word"):
-        if german and bangla:
-            vocab = load_vocab()
-            vocab[german] = bangla
-            save_vocab(vocab)
-            st.success(f"✅ '{german}' added successfully!")
-        else:
-            st.warning("Please enter both German and Bangla words.")
-
-# === Page 3: Quiz ===
+# === Page 2: Quiz ===
 elif menu == "🎯 Quiz":
-    st.subheader("🎯 Take a Quiz")
+    st.subheader("🎯 Multiple Choice Quiz")
+
+    num_questions = st.slider("Number of Questions:", 5, 20, 10)
+    quiz_words = list(vocab.items())
+    random.shuffle(quiz_words)
+    quiz_words = quiz_words[:num_questions]
+
+    answers = {}
+    for idx, (german, bangla) in enumerate(quiz_words, start=1):
+        options = [bangla]  # correct
+        wrong_opts = random.sample(
+            [b for b in vocab.values() if b != bangla],
+            min(3, len(vocab) - 1)
+        )
+        options.extend(wrong_opts)
+        random.shuffle(options)
+
+        st.markdown(f"**{idx}. What is the Bangla meaning of '{german}'?**")
+        selected = st.radio(
+            "Select your answer:",
+            options,
+            key=f"q_{idx}"
+        )
+        answers[german] = (selected, bangla)
+
+    st.divider()
+
+    # === Submit button ===
+    if st.button("✅ Submit Quiz"):
+        correct = 0
+        for german, (chosen, actual) in answers.items():
+            if chosen == actual:
+                correct += 1
+
+        st.success(f"🎯 Your total score: {correct}/{len(answers)} ✅")
+        st.progress(correct / len(answers))
+        st.balloons()
+
+        # Show result table
+        result_table = []
+        for german, (chosen, actual) in answers.items():
+            result_table.append({
+                "🇩🇪 German": german,
+                "Your Answer": chosen,
+                "Correct Answer": actual,
+                "Result": "✔️" if chosen == actual else "❌"
+            })
+        st.dataframe(pd.DataFrame(result_table))
+
+# === Page 3: Delete Word ===
+elif menu == "🗑️ Delete Word":
+    st.subheader("🗑️ Delete a Word from Vocabulary")
     vocab = load_vocab()
+
     if not vocab:
-        st.warning("No words available. Please add some first!")
+        st.warning("No words found in JSON file.")
     else:
-        mode = st.radio("Select Quiz Mode:", ["German → Bangla", "Bangla → German"])
-        num_questions = st.slider("Number of Questions:", 5, 20, 10)
-
-        if st.button("Start Quiz"):
-            quiz_words = list(vocab.items())
-            random.shuffle(quiz_words)
-            quiz_words = quiz_words[:num_questions]
-
-            score = 0
-            for german, bangla in quiz_words:
-                if mode == "German → Bangla":
-                    ans = st.text_input(f"What is the Bangla meaning of '{german}'?", key=german)
-                    if st.button(f"Check {german}", key=german+"_btn"):
-                        if ans.strip() == bangla:
-                            st.success("✅ Correct!")
-                            score += 1
-                        else:
-                            st.error(f"❌ Wrong! Correct: {bangla}")
-                else:
-                    ans = st.text_input(f"What is the German word for '{bangla}'?", key=bangla)
-                    if st.button(f"Check {bangla}", key=bangla+"_btn"):
-                        if ans.strip() == german:
-                            st.success("✅ Correct!")
-                            score += 1
-                        else:
-                            st.error(f"❌ Wrong! Correct: {german}")
-            st.success(f"🎯 Your total score: {score}/{num_questions}")
-
-# === Page 4: Progress ===
-elif menu == "📊 Progress":
-    st.subheader("📈 Your Learning Progress")
-    try:
-        with open("quiz_history.json", "r", encoding="utf-8") as f:
-            history = json.load(f)
-    except FileNotFoundError:
-        history = []
-
-    if st.button("Simulate Last 10 Quiz Scores"):
-        history = [random.randint(5, 20) for _ in range(10)]
-        with open("quiz_history.json", "w", encoding="utf-8") as f:
-            json.dump(history, f, ensure_ascii=False, indent=4)
-
-    if history:
-        fig, ax = plt.subplots()
-        ax.plot(range(1, len(history)+1), history, marker="o", color="green")
-        ax.set_title("Quiz Score History")
-        ax.set_xlabel("Attempt Number")
-        ax.set_ylabel("Score (out of 20)")
-        st.pyplot(fig)
-    else:
-        st.info("No quiz history yet.")
+        word_to_delete = st.selectbox("Select a German word to delete:", list(vocab.keys()))
+        if st.button("Delete"):
+            del vocab[word_to_delete]
+            save_vocab(vocab)
+            st.success(f"❌ '{word_to_delete}' deleted successfully!")
