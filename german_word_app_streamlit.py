@@ -14,6 +14,7 @@ vocab = {
     "ergänzen": {"bangla": "পূরণ করা", "sentence": "বাক্যটি পূর্ণ করুন।"},
     "machen": {"bangla": "করা", "sentence": "আমি আমার বাড়ির কাজ করি।"},
     "der Kurs, -e": {"bangla": "কোর্স / ক্লাস", "sentence": "কোর্সটি আকর্ষণীয়।"},
+    "das Wort,, -":er": {"bangla": "শব্দ", "sentence": ""},
     "sprechen": {"bangla": "কথা বলা", "sentence": "আমরা জার্মান বলি।"},
     "lesen": {"bangla": "পড়া", "sentence": "সে বই পড়ে।"},
     "schreiben": {"bangla": "লেখা", "sentence": "আমি আমার নাম লিখি।"},
@@ -182,4 +183,5 @@ else:
             for k in list(st.session_state.keys()):
                 del st.session_state[k]
             st.rerun()
+
 
