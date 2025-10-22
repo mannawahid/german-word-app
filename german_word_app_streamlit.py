@@ -5,17 +5,26 @@ import pandas as pd
 
 # === Vocabulary ===
 vocab = {
-    "ansehen": {"bangla": "দেখা", "sentence": "Ich sehe das Bild."},
-    "das Bild, -er": {"bangla": "ছবি", "sentence": "Das Bild ist schön."},
-    "hören": {"bangla": "শোনা", "sentence": "Ich höre Musik."},
-    "lesen": {"bangla": "পড়া", "sentence": "Er liest ein Buch."},
-    "essen": {"bangla": "খাওয়া", "sentence": "Ich esse einen Apfel."},
-    "gehen": {"bangla": "যাওয়া", "sentence": "Ich gehe zur Uni."},
-    "sprechen": {"bangla": "কথা বলা", "sentence": "Wir sprechen Deutsch."},
-    "wohnen": {"bangla": "বাস করা", "sentence": "Ich wohne in Bremen."},
-    "machen": {"bangla": "করা", "sentence": "Ich mache meine Hausaufgaben."},
-    "zuordnen": {"bangla": "মিলানো", "sentence": "Ordnen Sie die Wörter zu."},
-    "ankreuzen": {"bangla": "টিক চিহ্ন দেওয়া", "sentence": "Kreuzen Sie die richtige Antwort an."},
+    "ansehen": {"bangla": "দেখা", "sentence": "আমি ছবিটা দেখি।"},
+    "das Bild, -er": {"bangla": "ছবি", "sentence": "ছবিটা সুন্দর।"},
+    "hören": {"bangla": "শোনা", "sentence": "আমি গান শুনি।"},
+    "noch einmal": {"bangla": "আবার একবার", "sentence": "অনুগ্রহ করে আবার একবার বলুন।"},
+    "ankreuzen": {"bangla": "টিক চিহ্ন দেওয়া", "sentence": "সঠিক উত্তরে টিক দিন।"},
+    "zuordnen": {"bangla": "মিলানো", "sentence": "শব্দগুলো মিলিয়ে দিন।"},
+    "ergänzen": {"bangla": "পূরণ করা", "sentence": "বাক্যটি পূর্ণ করুন।"},
+    "machen": {"bangla": "করা", "sentence": "আমি আমার বাড়ির কাজ করি।"},
+    "der Kurs, -e": {"bangla": "কোর্স / ক্লাস", "sentence": "কোর্সটি আকর্ষণীয়।"},
+    "sprechen": {"bangla": "কথা বলা", "sentence": "আমরা জার্মান বলি।"},
+    "lesen": {"bangla": "পড়া", "sentence": "সে বই পড়ে।"},
+    "schreiben": {"bangla": "লেখা", "sentence": "আমি আমার নাম লিখি।"},
+    "fragen": {"bangla": "জিজ্ঞেস করা", "sentence": "আমি শিক্ষককে প্রশ্ন করি।"},
+    "antworten": {"bangla": "উত্তর দেওয়া", "sentence": "সে আমার প্রশ্নের উত্তর দেয়।"},
+    "kommen": {"bangla": "আসা", "sentence": "আমি স্কুলে আসি।"},
+    "gehen": {"bangla": "যাওয়া", "sentence": "আমি বিশ্ববিদ্যালয়ে যাই।"},
+    "sehen": {"bangla": "দেখা", "sentence": "আমি টেলিভিশন দেখি।"},
+    "trinken": {"bangla": "পান করা", "sentence": "আমি পানি পান করি।"},
+    "essen": {"bangla": "খাওয়া", "sentence": "আমি আপেল খাই।"},
+    "wohnen": {"bangla": "বাস করা", "sentence": "আমি ব্রেমেনে থাকি।"},
 }
 
 # === Streamlit Setup ===
@@ -173,3 +182,4 @@ else:
             for k in list(st.session_state.keys()):
                 del st.session_state[k]
             st.rerun()
+
