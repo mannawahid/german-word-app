@@ -1,8 +1,8 @@
 import streamlit as st
-import random
 import pandas as pd
+import random
 
-# === Built-in Vocabulary (Excel থেকে embed করা) ===
+# === Embedded Vocabulary ===
 vocab = {
     "ansehen": {"bangla": "দেখা", "sentence": "আমি ছবিটা দেখি।"},
     "das Bild, -er": {"bangla": "ছবি", "sentence": "ছবিটা সুন্দর।"},
@@ -26,107 +26,99 @@ vocab = {
     "wohnen": {"bangla": "বাস করা", "sentence": "আমি ব্রেমেনে থাকি।"},
 }
 
-# === Streamlit Config ===
+# === Page setup ===
 st.set_page_config(page_title="Deutsch Wörter Lernen", page_icon="🇩🇪", layout="centered")
 st.title("🇩🇪 Deutsch Wörter Lernen (German ↔ বাংলা)")
-st.caption("Multiple-choice quiz with answers saved until you submit.")
+st.caption("Persistent multiple-choice quiz with Bangla–German toggle.")
 
 menu = st.sidebar.radio("📚 Menu", ["🏠 Word List", "🎯 Quiz"])
 
-# === Word List Page ===
+# === Word list page ===
 if menu == "🏠 Word List":
-    st.subheader("📘 German → Bangla Word List")
     df = pd.DataFrame(
         [{"🇩🇪 German": g, "🇧🇩 Bangla": v["bangla"], "🗣️ Example": v["sentence"]}
          for g, v in vocab.items()]
     )
+    st.subheader("📘 German → Bangla Vocabulary")
     st.dataframe(df, use_container_width=True)
     st.success(f"Loaded {len(vocab)} words successfully!")
 
-# === Quiz Page ===
+# === Quiz page ===
 elif menu == "🎯 Quiz":
     st.subheader("🎯 Multiple-Choice Quiz")
+    mode = st.radio("Quiz Direction:", ["🇩🇪 German → বাংলা", "🇧🇩 বাংলা → German"])
+    num_q = st.slider("Number of Questions:", 5, 20, 10)
 
-    mode = st.radio("Choose Quiz Mode:", ["🇩🇪 German → বাংলা", "🇧🇩 বাংলা → German"])
-    num_questions = st.slider("Number of Questions:", 5, 20, 10)
-
-    # Initialize quiz only once
+    # initialize once
     if "quiz_words" not in st.session_state or st.session_state.get("last_mode") != mode:
-        quiz_words = list(vocab.items())
-        random.shuffle(quiz_words)
-        st.session_state.quiz_words = quiz_words[:num_questions]
+        pairs = list(vocab.items())
+        random.shuffle(pairs)
+        st.session_state.quiz_words = pairs[:num_q]
         st.session_state.answers = {}
+        st.session_state.submitted = False
         st.session_state.last_mode = mode
 
     quiz_words = st.session_state.quiz_words
 
-    # Display each question
-    for idx, (german, info) in enumerate(quiz_words, start=1):
-        correct = info["bangla"]
-        sentence = info.get("sentence", "")
+    for i, (german, info) in enumerate(quiz_words, start=1):
+        correct_bn = info["bangla"]
+        sent = info.get("sentence", "")
 
         if mode == "🇩🇪 German → বাংলা":
             question = german
-            correct_option = correct
+            correct_ans = correct_bn
             all_options = [v["bangla"] for v in vocab.values()]
         else:
-            question = info["bangla"]
-            correct_option = german
+            question = correct_bn
+            correct_ans = german
             all_options = list(vocab.keys())
 
-        wrong_opts = random.sample([opt for opt in all_options if opt != correct_option],
-                                   k=min(3, len(all_options) - 1))
-        options = wrong_opts + [correct_option]
+        wrong = random.sample([o for o in all_options if o != correct_ans],
+                              k=min(3, len(all_options) - 1))
+        options = wrong + [correct_ans]
         random.shuffle(options)
 
-        st.markdown(f"**{idx}. {'What is the Bangla meaning of' if mode == '🇩🇪 German → বাংলা' else 'What is the German word for'} '{question}'?**")
-        if sentence and mode == "🇩🇪 German → বাংলা":
-            st.caption(f"💬 Example: {sentence}")
+        st.markdown(f"**{i}. {'Bangla meaning of' if mode == '🇩🇪 German → বাংলা' else 'German word for'} '{question}'?**")
+        if sent and mode == "🇩🇪 German → বাংলা":
+            st.caption(f"💬 Example: {sent}")
 
-        key = f"q_{idx}"
-        selected = st.radio("Select your answer:", options, key=key,
-                            index=options.index(st.session_state.answers[key])
-                            if key in st.session_state.answers and st.session_state.answers[key] in options
-                            else None)
-        st.session_state.answers[key] = selected
+        key = f"q{i}"
+        default_index = options.index(st.session_state.answers[key]) if key in st.session_state.answers and st.session_state.answers[key] in options else 0
+        choice = st.radio("Select:", options, key=key, index=default_index)
+        st.session_state.answers[key] = choice
 
     st.divider()
 
-    # === Submit button ===
+    # --- submit ---
     if st.button("✅ Submit Quiz"):
-        result_data = []
-        correct_count = 0
-
-        for idx, (german, info) in enumerate(quiz_words, start=1):
-            key = f"q_{idx}"
-            chosen = st.session_state.answers.get(key)
+        correct = 0
+        table = []
+        for i, (german, info) in enumerate(quiz_words, start=1):
+            chosen = st.session_state.answers.get(f"q{i}")
             if mode == "🇩🇪 German → বাংলা":
                 correct_ans = info["bangla"]
-                word_shown = german
+                shown = german
             else:
                 correct_ans = german
-                word_shown = info["bangla"]
-
-            is_correct = chosen == correct_ans
-            if is_correct:
-                correct_count += 1
-
-            result_data.append({
-                "Word": word_shown,
-                "Your Answer": chosen if chosen else "❌ Not answered",
-                "Correct Answer": correct_ans,
-                "Result": "✔️" if is_correct else "❌"
+                shown = info["bangla"]
+            ok = chosen == correct_ans
+            if ok:
+                correct += 1
+            table.append({
+                "Word": shown,
+                "Your Answer": chosen,
+                "Correct": correct_ans,
+                "Result": "✔️" if ok else "❌"
             })
+        st.session_state.submitted = True
+        st.session_state.results = table
+        st.session_state.score = correct
 
-        st.session_state.result_data = result_data
-        st.session_state.score = correct_count
-
-    # === Show results if available ===
-    if "result_data" in st.session_state:
-        data = st.session_state.result_data
-        correct_count = st.session_state.score
-        score = correct_count / len(data)
-        st.success(f"🎯 You got {correct_count} / {len(data)} correct!")
+    # --- show result ---
+    if st.session_state.get("submitted"):
+        res = st.session_state.results
+        score = st.session_state.score / len(res)
+        st.success(f"🎯 You got {st.session_state.score} / {len(res)} correct!")
         st.progress(score)
         st.balloons()
-        st.dataframe(pd.DataFrame(data))
+        st.dataframe(pd.DataFrame(res))
