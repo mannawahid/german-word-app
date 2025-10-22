@@ -6,9 +6,161 @@ import time
 # === Vocabulary Database (Level wise) ===
 word_bank = {
     "A1.1": {
-        "ansehen": {"bangla": "দেখা", "sentence_de": "Ich sehe das Bild.", "sentence_bn": "আমি ছবিটা দেখি।"},
-        "das Bild, -er": {"bangla": "ছবি", "sentence_de": "Das Bild ist schön.", "sentence_bn": "ছবিটা সুন্দর।"},
-        "hören": {"bangla": "শোনা", "sentence_de": "Ich höre Musik.", "sentence_bn": "আমি গান শুনি।"},
+        "sein": {
+            "bangla": "হওয়া",
+            "sentence_de": "Ich bin Student.",
+            "sentence_bn": "আমি একজন ছাত্র।"
+        },
+        "haben": {
+            "bangla": "থাকা / থাকা আছে",
+            "sentence_de": "Ich habe ein Buch.",
+            "sentence_bn": "আমার একটি বই আছে।"
+        },
+        "kommen": {
+            "bangla": "আসা",
+            "sentence_de": "Ich komme aus Bangladesch.",
+            "sentence_bn": "আমি বাংলাদেশ থেকে আসি।"
+        },
+        "gehen": {
+            "bangla": "যাওয়া",
+            "sentence_de": "Ich gehe zur Arbeit.",
+            "sentence_bn": "আমি কাজে যাচ্ছি।"
+        },
+        "machen": {
+            "bangla": "করা",
+            "sentence_de": "Was machst du?",
+            "sentence_bn": "তুমি কী করছো?"
+        },
+        "lernen": {
+            "bangla": "শেখা",
+            "sentence_de": "Ich lerne Deutsch.",
+            "sentence_bn": "আমি জার্মান শিখছি।"
+        },
+        "sprechen": {
+            "bangla": "কথা বলা",
+            "sentence_de": "Sie spricht gut Englisch.",
+            "sentence_bn": "সে ভালো ইংরেজি বলে।"
+        },
+        "wohnen": {
+            "bangla": "বাস করা / থাকা",
+            "sentence_de": "Ich wohne in Bremen.",
+            "sentence_bn": "আমি ব্রেমেনে থাকি।"
+        },
+        "essen": {
+            "bangla": "খাওয়া",
+            "sentence_de": "Ich esse einen Apfel.",
+            "sentence_bn": "আমি একটি আপেল খাচ্ছি।"
+        },
+        "trinken": {
+            "bangla": "পান করা",
+            "sentence_de": "Er trinkt Wasser.",
+            "sentence_bn": "সে পানি পান করে।"
+        },
+        "lesen": {
+            "bangla": "পড়া",
+            "sentence_de": "Ich lese ein Buch.",
+            "sentence_bn": "আমি একটি বই পড়ছি।"
+        },
+        "hören": {
+            "bangla": "শোনা",
+            "sentence_de": "Wir hören Musik.",
+            "sentence_bn": "আমরা গান শুনি।"
+        },
+        "sehen": {
+            "bangla": "দেখা",
+            "sentence_de": "Ich sehe einen Film.",
+            "sentence_bn": "আমি একটি সিনেমা দেখি।"
+        },
+        "schreiben": {
+            "bangla": "লেখা",
+            "sentence_de": "Ich schreibe einen Brief.",
+            "sentence_bn": "আমি একটি চিঠি লিখছি।"
+        },
+        "arbeiten": {
+            "bangla": "কাজ করা",
+            "sentence_de": "Mein Vater arbeitet im Büro.",
+            "sentence_bn": "আমার বাবা অফিসে কাজ করেন।"
+        },
+        "spielen": {
+            "bangla": "খেলা / বাজানো",
+            "sentence_de": "Die Kinder spielen Fußball.",
+            "sentence_bn": "ছেলেরা ফুটবল খেলে।"
+        },
+        "finden": {
+            "bangla": "খুঁজে পাওয়া / মনে করা",
+            "sentence_de": "Ich finde das Buch interessant.",
+            "sentence_bn": "আমি বইটি আকর্ষণীয় মনে করি।"
+        },
+        "mögen": {
+            "bangla": "পছন্দ করা",
+            "sentence_de": "Ich mag Schokolade.",
+            "sentence_bn": "আমি চকোলেট পছন্দ করি।"
+        },
+        "kaufen": {
+            "bangla": "কেনা",
+            "sentence_de": "Ich kaufe Brot und Milch.",
+            "sentence_bn": "আমি রুটি এবং দুধ কিনি।"
+        },
+        "brauchen": {
+            "bangla": "প্রয়োজন হওয়া",
+            "sentence_de": "Ich brauche Hilfe.",
+            "sentence_bn": "আমার সাহায্য দরকার।"
+        },
+        "nehmen": {
+            "bangla": "নেওয়া",
+            "sentence_de": "Ich nehme den Bus.",
+            "sentence_bn": "আমি বাসে যাই।"
+        },
+        "geben": {
+            "bangla": "দেওয়া",
+            "sentence_de": "Kannst du mir das Buch geben?",
+            "sentence_bn": "তুমি কি আমাকে বইটা দিতে পারো?"
+        },
+        "kommen": {
+            "bangla": "আসা",
+            "sentence_de": "Kommst du mit?",
+            "sentence_bn": "তুমি কি সঙ্গে আসছো?"
+        },
+        "gehen": {
+            "bangla": "যাওয়া",
+            "sentence_de": "Ich gehe zur Schule.",
+            "sentence_bn": "আমি স্কুলে যাচ্ছি।"
+        },
+        "fragen": {
+            "bangla": "প্রশ্ন করা",
+            "sentence_de": "Ich frage den Lehrer.",
+            "sentence_bn": "আমি শিক্ষকের কাছে প্রশ্ন করি।"
+        },
+        "antworten": {
+            "bangla": "উত্তর দেওয়া",
+            "sentence_de": "Der Schüler antwortet richtig.",
+            "sentence_bn": "ছাত্রটি সঠিক উত্তর দেয়।"
+        },
+        "helfen": {
+            "bangla": "সাহায্য করা",
+            "sentence_de": "Kannst du mir helfen?",
+            "sentence_bn": "তুমি কি আমাকে সাহায্য করতে পারো?"
+        },
+        "bleiben": {
+            "bangla": "থাকা / অবস্থান করা",
+            "sentence_de": "Ich bleibe zu Hause.",
+            "sentence_bn": "আমি বাড়িতে থাকি।"
+        },
+        "stehen": {
+            "bangla": "দাঁড়ানো",
+            "sentence_de": "Er steht vor der Tür.",
+            "sentence_bn": "সে দরজার সামনে দাঁড়িয়ে আছে।"
+        },
+        "sitzen": {
+            "bangla": "বসা",
+            "sentence_de": "Wir sitzen im Park.",
+            "sentence_bn": "আমরা পার্কে বসে আছি।"
+        },
+        "laufen": {
+            "bangla": "দৌড়ানো / হাঁটা",
+            "sentence_de": "Das Kind läuft schnell.",
+            "sentence_bn": "বাচ্চাটি দ্রুত দৌড়াচ্ছে।"
+        },
     },
     "A1.2": {
         "lesen": {"bangla": "পড়া", "sentence_de": "Er liest ein Buch.", "sentence_bn": "সে বই পড়ে।"},
@@ -182,3 +334,4 @@ elif menu == "🎯 Quiz Game":
                 for k in list(st.session_state.keys()):
                     del st.session_state[k]
                 st.rerun()
+
