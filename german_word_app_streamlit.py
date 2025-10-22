@@ -18,7 +18,7 @@ vocab = {
 
 # === Streamlit Page Setup ===
 st.set_page_config(page_title="বাংলা → German Game", page_icon="🇩🇪", layout="centered")
-st.title("🇧🇩 ➜ 🇩🇪 বাংলা → জার্মান শেখার গেম 🎮")
+st.title("🇧🇩 ➜ 🇩🇪 বাংলা🎮")
 st.caption("Type the correct German word, get applause if right, or see 😴 if wrong!")
 
 # === Initialize Session ===
@@ -136,3 +136,4 @@ else:
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
+
