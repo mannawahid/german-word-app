@@ -1,94 +1,107 @@
 import streamlit as st
-import pandas as pd
+import json
 import random
+import matplotlib.pyplot as plt
 
-# === Page Config ===
-st.set_page_config(page_title="Deutsch Wörter Lernen", page_icon="🇩🇪", layout="centered")
+VOCAB_FILE = "german_vocab.json"
 
-st.title("🇩🇪 Deutsch ↔ বাংলা Vocabulary Trainer (Multiple Choice)")
-st.caption("Learn German words with Bangla meanings and example sentences. Each page has 20 questions.")
-
-# === Load Excel File ===
-@st.cache_data
-def load_data():
+def load_vocab():
     try:
-        df = pd.read_excel("Meine_Woerter_im_Kurs_Bangla.xlsx")
-        df = df.dropna(subset=["German", "Bangla"])
-        return df
-    except Exception as e:
-        st.error(f"⚠️ Error loading file: {e}")
-        return pd.DataFrame(columns=["German", "Bangla", "Sentence"])
+        with open(VOCAB_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
 
-df = load_data()
+def save_vocab(vocab):
+    with open(VOCAB_FILE, "w", encoding="utf-8") as f:
+        json.dump(vocab, f, ensure_ascii=False, indent=4)
 
-if df.empty:
-    st.warning("No data found. Please ensure 'Meine_Woerter_im_Kurs_Bangla.xlsx' is uploaded with columns: German | Bangla | Sentence.")
-    st.stop()
+# App title
+st.set_page_config(page_title="Deutsch Wörter Lernen", page_icon="🇩🇪", layout="centered")
+st.title("🇩🇪 Deutsch Wörter Lernen (German ↔ বাংলা)")
+st.caption("Learn German words with Bangla meanings, practice quizzes, and track your progress!")
 
-st.success(f"Loaded {len(df)} words from Excel file ✅")
+# Sidebar navigation
+menu = st.sidebar.radio("📚 Menu", ["🏠 Home", "➕ Add Word", "🎯 Quiz", "📊 Progress"])
 
-# === Pagination ===
-QUESTIONS_PER_PAGE = 20
-total_pages = (len(df) + QUESTIONS_PER_PAGE - 1) // QUESTIONS_PER_PAGE
+# === Page 1: Home ===
+if menu == "🏠 Home":
+    vocab = load_vocab()
+    st.subheader("📘 Your Vocabulary List")
+    if vocab:
+        st.table({"🇩🇪 German Word": vocab.keys(), "🇧🇩 Bangla Meaning": vocab.values()})
+    else:
+        st.info("No words added yet. Go to ➕ Add Word.")
 
-# Shuffle words
-df = df.sample(frac=1, random_state=random.randint(1, 9999)).reset_index(drop=True)
+# === Page 2: Add Word ===
+elif menu == "➕ Add Word":
+    st.subheader("➕ Add a New Word")
+    german = st.text_input("🇩🇪 German Word")
+    bangla = st.text_input("🇧🇩 Bangla Meaning")
+    if st.button("Save Word"):
+        if german and bangla:
+            vocab = load_vocab()
+            vocab[german] = bangla
+            save_vocab(vocab)
+            st.success(f"✅ '{german}' added successfully!")
+        else:
+            st.warning("Please enter both German and Bangla words.")
 
-# Select quiz page
-page = st.number_input("📄 Select Quiz Page:", 1, total_pages, 1)
-start = (page - 1) * QUESTIONS_PER_PAGE
-end = start + QUESTIONS_PER_PAGE
-quiz_df = df.iloc[start:end]
+# === Page 3: Quiz ===
+elif menu == "🎯 Quiz":
+    st.subheader("🎯 Take a Quiz")
+    vocab = load_vocab()
+    if not vocab:
+        st.warning("No words available. Please add some first!")
+    else:
+        mode = st.radio("Select Quiz Mode:", ["German → Bangla", "Bangla → German"])
+        num_questions = st.slider("Number of Questions:", 5, 20, 10)
 
-st.divider()
-st.subheader(f"🎯 Multiple Choice Quiz — Page {page} of {total_pages}")
+        if st.button("Start Quiz"):
+            quiz_words = list(vocab.items())
+            random.shuffle(quiz_words)
+            quiz_words = quiz_words[:num_questions]
 
-# === Quiz ===
-answers = {}
-for idx, row in quiz_df.iterrows():
-    german_word = row["German"]
-    correct_ans = row["Bangla"]
-    sentence = str(row.get("Sentence", ""))
+            score = 0
+            for german, bangla in quiz_words:
+                if mode == "German → Bangla":
+                    ans = st.text_input(f"What is the Bangla meaning of '{german}'?", key=german)
+                    if st.button(f"Check {german}", key=german+"_btn"):
+                        if ans.strip() == bangla:
+                            st.success("✅ Correct!")
+                            score += 1
+                        else:
+                            st.error(f"❌ Wrong! Correct: {bangla}")
+                else:
+                    ans = st.text_input(f"What is the German word for '{bangla}'?", key=bangla)
+                    if st.button(f"Check {bangla}", key=bangla+"_btn"):
+                        if ans.strip() == german:
+                            st.success("✅ Correct!")
+                            score += 1
+                        else:
+                            st.error(f"❌ Wrong! Correct: {german}")
+            st.success(f"🎯 Your total score: {score}/{num_questions}")
 
-    # generate 3 wrong options
-    all_bangla = df["Bangla"].tolist()
-    wrong_opts = random.sample([b for b in all_bangla if b != correct_ans], k=3) if len(all_bangla) > 3 else []
-    options = [correct_ans] + wrong_opts
-    random.shuffle(options)
+# === Page 4: Progress ===
+elif menu == "📊 Progress":
+    st.subheader("📈 Your Learning Progress")
+    try:
+        with open("quiz_history.json", "r", encoding="utf-8") as f:
+            history = json.load(f)
+    except FileNotFoundError:
+        history = []
 
-    st.markdown(f"**{idx+1}. What is the Bangla meaning of '{german_word}'?**")
-    if sentence and sentence.lower() != "nan":
-        st.caption(f"💬 _Example:_ {sentence}")
+    if st.button("Simulate Last 10 Quiz Scores"):
+        history = [random.randint(5, 20) for _ in range(10)]
+        with open("quiz_history.json", "w", encoding="utf-8") as f:
+            json.dump(history, f, ensure_ascii=False, indent=4)
 
-    selected = st.radio(
-        label="Select your answer:",
-        options=options,
-        key=f"q_{idx}",
-        index=None
-    )
-    answers[german_word] = (selected, correct_ans)
-
-st.divider()
-
-# === Submit ===
-if st.button("✅ Submit Quiz"):
-    correct = 0
-    for word, (chosen, actual) in answers.items():
-        if chosen == actual:
-            correct += 1
-
-    score = correct / len(answers)
-    st.success(f"🎉 You got {correct} out of {len(answers)} correct!")
-    st.progress(score)
-    st.balloons()
-
-    # Show review table
-    review = []
-    for word, (chosen, actual) in answers.items():
-        review.append({
-            "German": word,
-            "Your Answer": chosen if chosen else "❌ Not answered",
-            "Correct Answer": actual,
-            "✅ Correct?": "✔️" if chosen == actual else "❌"
-        })
-    st.dataframe(pd.DataFrame(review))
+    if history:
+        fig, ax = plt.subplots()
+        ax.plot(range(1, len(history)+1), history, marker="o", color="green")
+        ax.set_title("Quiz Score History")
+        ax.set_xlabel("Attempt Number")
+        ax.set_ylabel("Score (out of 20)")
+        st.pyplot(fig)
+    else:
+        st.info("No quiz history yet.")
