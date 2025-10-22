@@ -2,7 +2,7 @@ import streamlit as st
 import random
 import pandas as pd
 
-# === Built-in Vocabulary (from Meine_Woerter_im_Kurs_Bangla.xlsx) ===
+# === Built-in Vocabulary (Excel থেকে embed করা) ===
 vocab = {
     "ansehen": {"bangla": "দেখা", "sentence": "আমি ছবিটা দেখি।"},
     "das Bild, -er": {"bangla": "ছবি", "sentence": "ছবিটা সুন্দর।"},
@@ -29,7 +29,7 @@ vocab = {
 # === Streamlit Config ===
 st.set_page_config(page_title="Deutsch Wörter Lernen", page_icon="🇩🇪", layout="centered")
 st.title("🇩🇪 Deutsch Wörter Lernen (German ↔ বাংলা)")
-st.caption("Learn German vocabulary with Bangla meanings and example sentences.")
+st.caption("Multiple-choice quiz with answers saved until you submit.")
 
 menu = st.sidebar.radio("📚 Menu", ["🏠 Word List", "🎯 Quiz"])
 
@@ -47,21 +47,20 @@ if menu == "🏠 Word List":
 elif menu == "🎯 Quiz":
     st.subheader("🎯 Multiple-Choice Quiz")
 
-    # Mode selector
     mode = st.radio("Choose Quiz Mode:", ["🇩🇪 German → বাংলা", "🇧🇩 বাংলা → German"])
-
     num_questions = st.slider("Number of Questions:", 5, 20, 10)
 
-    # Create randomized question set
-    quiz_words = list(vocab.items())
-    random.shuffle(quiz_words)
-    quiz_words = quiz_words[:num_questions]
-
-    # Keep answers persistent
-    if "answers" not in st.session_state:
+    # Initialize quiz only once
+    if "quiz_words" not in st.session_state or st.session_state.get("last_mode") != mode:
+        quiz_words = list(vocab.items())
+        random.shuffle(quiz_words)
+        st.session_state.quiz_words = quiz_words[:num_questions]
         st.session_state.answers = {}
+        st.session_state.last_mode = mode
 
-    # Display questions
+    quiz_words = st.session_state.quiz_words
+
+    # Display each question
     for idx, (german, info) in enumerate(quiz_words, start=1):
         correct = info["bangla"]
         sentence = info.get("sentence", "")
@@ -75,7 +74,6 @@ elif menu == "🎯 Quiz":
             correct_option = german
             all_options = list(vocab.keys())
 
-        # Pick 3 wrong options
         wrong_opts = random.sample([opt for opt in all_options if opt != correct_option],
                                    k=min(3, len(all_options) - 1))
         options = wrong_opts + [correct_option]
@@ -85,24 +83,20 @@ elif menu == "🎯 Quiz":
         if sentence and mode == "🇩🇪 German → বাংলা":
             st.caption(f"💬 Example: {sentence}")
 
-        # Radio button with persistent state
         key = f"q_{idx}"
-        selected = st.radio("Select your answer:", options,
-                            key=key,
+        selected = st.radio("Select your answer:", options, key=key,
                             index=options.index(st.session_state.answers[key])
                             if key in st.session_state.answers and st.session_state.answers[key] in options
                             else None)
-
         st.session_state.answers[key] = selected
 
     st.divider()
 
     # === Submit button ===
     if st.button("✅ Submit Quiz"):
-        correct_count = 0
         result_data = []
+        correct_count = 0
 
-        # Evaluate answers
         for idx, (german, info) in enumerate(quiz_words, start=1):
             key = f"q_{idx}"
             chosen = st.session_state.answers.get(key)
@@ -124,8 +118,15 @@ elif menu == "🎯 Quiz":
                 "Result": "✔️" if is_correct else "❌"
             })
 
-        score = correct_count / len(result_data)
-        st.success(f"🎯 You got {correct_count} / {len(result_data)} correct!")
+        st.session_state.result_data = result_data
+        st.session_state.score = correct_count
+
+    # === Show results if available ===
+    if "result_data" in st.session_state:
+        data = st.session_state.result_data
+        correct_count = st.session_state.score
+        score = correct_count / len(data)
+        st.success(f"🎯 You got {correct_count} / {len(data)} correct!")
         st.progress(score)
         st.balloons()
-        st.dataframe(pd.DataFrame(result_data))
+        st.dataframe(pd.DataFrame(data))
