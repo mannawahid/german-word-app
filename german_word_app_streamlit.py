@@ -1,189 +1,179 @@
 import streamlit as st
+import pandas as pd
 import random
 import time
-import pandas as pd
 
-# === Vocabulary ===
-vocab = {
-    "ansehen": {"bangla": "দেখা", "sentence": "আমি ছবিটা দেখি।"},
-    "das Bild, -er": {"bangla": "ছবি", "sentence": "ছবিটা সুন্দর।"},
-    "hören": {"bangla": "শোনা", "sentence": "আমি গান শুনি।"},
-    "noch einmal": {"bangla": "আবার একবার", "sentence": "অনুগ্রহ করে আবার একবার বলুন।"},
-    "ankreuzen": {"bangla": "টিক চিহ্ন দেওয়া", "sentence": "সঠিক উত্তরে টিক দিন।"},
-    "zuordnen": {"bangla": "মিলানো", "sentence": "শব্দগুলো মিলিয়ে দিন।"},
-    "ergänzen": {"bangla": "পূরণ করা", "sentence": "বাক্যটি পূর্ণ করুন।"},
-    "machen": {"bangla": "করা", "sentence": "আমি আমার বাড়ির কাজ করি।"},
-    "der Kurs, -e": {"bangla": "কোর্স / ক্লাস", "sentence": "কোর্সটি আকর্ষণীয়।"},
-    "sprechen": {"bangla": "কথা বলা", "sentence": "আমরা জার্মান বলি।"},
-    "lesen": {"bangla": "পড়া", "sentence": "সে বই পড়ে।"},
-    "schreiben": {"bangla": "লেখা", "sentence": "আমি আমার নাম লিখি।"},
-    "fragen": {"bangla": "জিজ্ঞেস করা", "sentence": "আমি শিক্ষককে প্রশ্ন করি।"},
-    "antworten": {"bangla": "উত্তর দেওয়া", "sentence": "সে আমার প্রশ্নের উত্তর দেয়।"},
-    "kommen": {"bangla": "আসা", "sentence": "আমি স্কুলে আসি।"},
-    "gehen": {"bangla": "যাওয়া", "sentence": "আমি বিশ্ববিদ্যালয়ে যাই।"},
-    "sehen": {"bangla": "দেখা", "sentence": "আমি টেলিভিশন দেখি।"},
-    "trinken": {"bangla": "পান করা", "sentence": "আমি পানি পান করি।"},
-    "essen": {"bangla": "খাওয়া", "sentence": "আমি আপেল খাই।"},
-    "wohnen": {"bangla": "বাস করা", "sentence": "আমি ব্রেমেনে থাকি।"},
+# === Vocabulary Database (Level wise) ===
+word_bank = {
+    "A1.1": {
+        "ansehen": {"bangla": "দেখা", "sentence_de": "Ich sehe das Bild.", "sentence_bn": "আমি ছবিটা দেখি।"},
+        "das Bild, -er": {"bangla": "ছবি", "sentence_de": "Das Bild ist schön.", "sentence_bn": "ছবিটা সুন্দর।"},
+        "hören": {"bangla": "শোনা", "sentence_de": "Ich höre Musik.", "sentence_bn": "আমি গান শুনি।"},
+    },
+    "A1.2": {
+        "lesen": {"bangla": "পড়া", "sentence_de": "Er liest ein Buch.", "sentence_bn": "সে বই পড়ে।"},
+        "essen": {"bangla": "খাওয়া", "sentence_de": "Ich esse einen Apfel.", "sentence_bn": "আমি আপেল খাই।"},
+        "gehen": {"bangla": "যাওয়া", "sentence_de": "Ich gehe zur Uni.", "sentence_bn": "আমি বিশ্ববিদ্যালয়ে যাই।"},
+    },
+    "A2.1": {
+        "sprechen": {"bangla": "কথা বলা", "sentence_de": "Wir sprechen Deutsch.", "sentence_bn": "আমরা জার্মান বলি।"},
+        "wohnen": {"bangla": "বাস করা", "sentence_de": "Ich wohne in Bremen.", "sentence_bn": "আমি ব্রেমেনে থাকি।"},
+    },
+    "A2.2": {
+        "machen": {"bangla": "করা", "sentence_de": "Ich mache meine Hausaufgaben.", "sentence_bn": "আমি আমার বাড়ির কাজ করি।"},
+        "zuordnen": {"bangla": "মিলানো", "sentence_de": "Ordnen Sie die Wörter zu.", "sentence_bn": "শব্দগুলো মিলিয়ে দিন।"},
+        "ankreuzen": {"bangla": "টিক চিহ্ন দেওয়া", "sentence_de": "Kreuzen Sie die richtige Antwort an.", "sentence_bn": "সঠিক উত্তরে টিক দিন।"},
+    },
+    # Future levels (B1/B2) can be added similarly
 }
 
-# === Streamlit Setup ===
-st.set_page_config(page_title="🐰 বাংলা → German Game", page_icon="🇩🇪", layout="centered")
-st.title("🐰 🇧🇩 ➜ 🇩🇪 বাংলা → জার্মান শেখার গেম 🎮")
-st.caption("Level up, no repeats — and see results after every stage!")
+# === Streamlit Config ===
+st.set_page_config(page_title="🇩🇪 Deutsch Lernen App", page_icon="🐰", layout="wide")
+st.title("🐰 Deutsch Lernen App 🇩🇪")
+st.caption("Learn German Vocabulary with Level-wise Lists and Interactive Quizzes 🎮")
 
-# === Initialize State ===
-if "init" not in st.session_state:
-    st.session_state.init = True
-    st.session_state.level = 1
-    st.session_state.score = 0
-    st.session_state.correct = 0
-    st.session_state.wrong = 0
-    st.session_state.used_words = set()  # Already correct words
-    st.session_state.retry_words = []    # Wrong ones for next level
-    st.session_state.results = []
-    st.session_state.current_questions = []
-    st.session_state.current_index = 0
-    st.session_state.hint_used = False
+# --- Sidebar Menu ---
+menu = st.sidebar.radio("📚 Navigate", ["🏠 Home", "📖 Vocabulary Levels", "🎮 Quiz Game"])
 
-# === Helper Functions ===
-def level_target(level):
-    """Return how many questions this level should have"""
-    return 2 + level  # level 1→3, level 2→4, level 3→5 ...
+# --- HOME PAGE ---
+if menu == "🏠 Home":
+    st.header("🎯 Willkommen!")
+    st.write("""
+    এই অ্যাপে তুমি তিনভাবে জার্মান শিখতে পারবে:
+    1️⃣ Level-wise শব্দ তালিকা দেখতে পারবে (A1 → B2 পর্যন্ত)।  
+    2️⃣ প্রতিটি শব্দের জার্মান ও বাংলা বাক্য পাবে।  
+    3️⃣ 🎮 Quiz Game এর মাধ্যমে অনুশীলন করতে পারবে।
+    """)
+    st.image("https://media.tenor.com/POOQOjE2aYcAAAAi/bunny-hello.gif", width=200)
 
-def load_next_level():
-    """Load new questions (retry + new ones)"""
-    all_items = list(vocab.items())
-    remaining = [(g, v) for g, v in all_items if g not in st.session_state.used_words]
+# --- VOCABULARY PAGE ---
+elif menu == "📖 Vocabulary Levels":
+    st.header("📘 German Vocabulary by Levels")
+    selected_level = st.selectbox("📖 Choose your level:", list(word_bank.keys()))
 
-    new_set = st.session_state.retry_words.copy()
-    st.session_state.retry_words = []
+    level_words = word_bank[selected_level]
+    st.subheader(f"🇩🇪 Level {selected_level} Vocabulary")
 
-    needed = level_target(st.session_state.level)
-    fresh = [item for item in remaining if item not in new_set]
-    random.shuffle(fresh)
-    new_set.extend(fresh[:max(0, needed - len(new_set))])
+    data = []
+    for word, info in level_words.items():
+        data.append({
+            "🇩🇪 German": word,
+            "🇧🇩 Bangla": info["bangla"],
+            "🗣️ German Sentence": info["sentence_de"],
+            "🗨️ Bangla Sentence": info["sentence_bn"]
+        })
+    df = pd.DataFrame(data)
+    st.dataframe(df, use_container_width=True)
 
-    st.session_state.current_questions = new_set
-    st.session_state.current_index = 0
-    st.session_state.hint_used = False
-    st.session_state.level_start = time.time()
+# --- QUIZ GAME PAGE ---
+elif menu == "🎮 Quiz Game":
+    st.header("🎮 German → Bangla Quiz Game")
+    all_words = {}
+    for lvl in word_bank.values():
+        all_words.update(lvl)
 
-def remaining_time(start, total=15):
-    return max(0, int(total - (time.time() - start)))
+    # --- Initialize session for quiz ---
+    if "level" not in st.session_state:
+        st.session_state.level = 1
+        st.session_state.score = 0
+        st.session_state.correct = 0
+        st.session_state.wrong = 0
+        st.session_state.used_words = set()
+        st.session_state.retry_words = []
+        st.session_state.results = []
+        st.session_state.current_questions = []
+        st.session_state.current_index = 0
 
-# Load first level if empty
-if not st.session_state.current_questions:
-    load_next_level()
+    # Helper functions
+    def level_target(level):
+        return 2 + level  # Level 1 → 3 questions, Level 2 → 4, etc.
 
-# === GAME LOOP ===
-if st.session_state.current_index < len(st.session_state.current_questions):
-    german, info = st.session_state.current_questions[st.session_state.current_index]
-    bangla = info["bangla"]
-    sentence = info["sentence"]
+    def load_next_level():
+        remaining = [(g, v) for g, v in all_words.items() if g not in st.session_state.used_words]
+        new_set = st.session_state.retry_words.copy()
+        st.session_state.retry_words = []
+        need = level_target(st.session_state.level)
+        fresh = [item for item in remaining if item not in new_set]
+        random.shuffle(fresh)
+        new_set.extend(fresh[:max(0, need - len(new_set))])
+        st.session_state.current_questions = new_set
+        st.session_state.current_index = 0
+        st.session_state.hint_used = False
 
-    st.markdown(f"### 🎯 Level {st.session_state.level}")
-    st.info(f"Question {st.session_state.current_index + 1}/{len(st.session_state.current_questions)}")
-    st.markdown(f"**'{bangla}' শব্দটির জার্মান অনুবাদ লিখুন:**")
+    # Start first level
+    if not st.session_state.current_questions:
+        load_next_level()
 
-    if st.session_state.hint_used:
-        st.caption(f"💡 Hint: {sentence}")
+    # Game logic
+    if st.session_state.current_index < len(st.session_state.current_questions):
+        german, info = st.session_state.current_questions[st.session_state.current_index]
+        bangla = info["bangla"]
+        st.markdown(f"### 🎯 Level {st.session_state.level}")
+        st.info(f"Question {st.session_state.current_index + 1}/{len(st.session_state.current_questions)}")
+        st.markdown(f"**'{german}' এর বাংলা অর্থ লিখো:**")
 
-    ans_key = f"ans_{st.session_state.level}_{st.session_state.current_index}"
-    ans = st.text_input("✍️ Type your German answer:", key=ans_key)
+        ans = st.text_input("✍️ Your Answer:", key=f"ans_{st.session_state.level}_{st.session_state.current_index}")
+        col1, col2, col3 = st.columns(3)
 
-    col1, col2, col3 = st.columns(3)
+        with col1:
+            if st.button("✅ Submit"):
+                correct_ans = bangla.strip().lower()
+                is_correct = ans.strip().lower() == correct_ans
+                if is_correct:
+                    st.success("✅ Correct!")
+                    st.image("https://media.tenor.com/5nZqVYpE6m4AAAAi/cute-rabbit-thumbs-up.gif", caption="🐰 Thumbs Up!")
+                    st.session_state.score += 10
+                    st.session_state.correct += 1
+                    st.session_state.used_words.add(german)
+                else:
+                    st.error(f"❌ Wrong! Correct: {bangla}")
+                    st.image("https://media.tenor.com/bTFeixbXb2kAAAAi/sad-rabbit-no.gif", caption="🐰 Thumbs Down!")
+                    st.session_state.retry_words.append((german, info))
+                    st.session_state.wrong += 1
 
-    with col1:
-        if st.button("💡 Hint"):
-            st.session_state.hint_used = True
-            st.rerun()
+                st.session_state.results.append({
+                    "Level": st.session_state.level,
+                    "German": german,
+                    "Your Answer": ans if ans else "—",
+                    "Correct Bangla": bangla,
+                    "Result": "✅" if is_correct else "❌"
+                })
 
-    with col2:
-        if st.button("✅ Submit"):
-            correct_ans = german.lower()
-            given = ans.strip().lower()
-            is_correct = given == correct_ans
+                st.session_state.current_index += 1
+                st.rerun()
 
-            if is_correct:
-                st.success("✅ Correct! Well done!")
-                st.image("https://media.tenor.com/5nZqVYpE6m4AAAAi/cute-rabbit-thumbs-up.gif",
-                         caption="🐰 Thumbs Up!")
-                st.session_state.score += 10
-                st.session_state.correct += 1
-                st.session_state.used_words.add(german)
-            else:
-                st.error(f"❌ Wrong! Correct answer: {german}")
-                st.image("https://media.tenor.com/bTFeixbXb2kAAAAi/sad-rabbit-no.gif",
-                         caption="🐰 Thumbs Down!")
+        with col3:
+            if st.button("⏭️ Skip"):
                 st.session_state.retry_words.append((german, info))
+                st.session_state.results.append({
+                    "Level": st.session_state.level,
+                    "German": german,
+                    "Your Answer": "Skipped",
+                    "Correct Bangla": bangla,
+                    "Result": "❌"
+                })
                 st.session_state.wrong += 1
+                st.session_state.current_index += 1
+                st.rerun()
 
-            st.session_state.results.append({
-                "Level": st.session_state.level,
-                "Bangla": bangla,
-                "Your Answer": ans if ans else "—",
-                "Correct German": german,
-                "Result": "✅" if is_correct else "❌"
-            })
-
-            st.session_state.current_index += 1
-            st.session_state.hint_used = False
-            st.rerun()
-
-    with col3:
-        if st.button("⏭️ Skip"):
-            st.session_state.retry_words.append((german, info))
-            st.session_state.results.append({
-                "Level": st.session_state.level,
-                "Bangla": bangla,
-                "Your Answer": "Skipped",
-                "Correct German": german,
-                "Result": "❌"
-            })
-            st.session_state.wrong += 1
-            st.session_state.current_index += 1
-            st.session_state.hint_used = False
-            st.rerun()
-
-# === LEVEL COMPLETE ===
-else:
-    total_words = len(vocab)
-    remaining_words = total_words - len(st.session_state.used_words)
-
-    st.balloons()
-    st.success(f"🎉 Level {st.session_state.level} Complete!")
-    st.metric("Score", st.session_state.score)
-    st.metric("Correct", st.session_state.correct)
-    st.metric("Wrong", st.session_state.wrong)
-    st.metric("Words Remaining", remaining_words)
-
-    st.write("### 📋 Level Results:")
-    level_df = pd.DataFrame(
-        [r for r in st.session_state.results if r["Level"] == st.session_state.level]
-    )
-    st.dataframe(level_df)
-
-    # Continue or End
-    if st.session_state.retry_words or remaining_words > 0:
-        next_level = st.session_state.level + 1
-        if st.button(f"🚀 Start Level {next_level} ({level_target(next_level)} Questions)"):
-            st.session_state.level = next_level
-            load_next_level()
-            st.rerun()
     else:
-        st.success("🏁 Game Over — All Words Mastered! 🎓")
-        st.metric("Final Score", st.session_state.score)
-        st.metric("Total Correct", st.session_state.correct)
-        st.metric("Total Wrong", st.session_state.wrong)
-        st.write("### 🧾 Full Game Summary:")
-        st.dataframe(pd.DataFrame(st.session_state.results))
-        if st.button("🔁 Restart Game"):
-            for k in list(st.session_state.keys()):
-                del st.session_state[k]
-            st.rerun()
+        st.success(f"🎉 Level {st.session_state.level} Complete!")
+        level_df = pd.DataFrame([r for r in st.session_state.results if r["Level"] == st.session_state.level])
+        st.dataframe(level_df)
+        total_words = len(all_words)
+        remaining = total_words - len(st.session_state.used_words)
 
-
-
-
-
+        if st.session_state.retry_words or remaining > 0:
+            next_level = st.session_state.level + 1
+            if st.button(f"🚀 Start Level {next_level} ({level_target(next_level)} questions)"):
+                st.session_state.level = next_level
+                load_next_level()
+                st.rerun()
+        else:
+            st.balloons()
+            st.success("🏁 Game Over — All Words Mastered! 🎓")
+            st.dataframe(pd.DataFrame(st.session_state.results))
+            if st.button("🔁 Restart Game"):
+                for k in list(st.session_state.keys()):
+                    del st.session_state[k]
+                st.rerun()
