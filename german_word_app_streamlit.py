@@ -1,58 +1,51 @@
 import streamlit as st
-import json
 import random
 import pandas as pd
 
-# === File paths ===
-VOCAB_FILE = "german_vocab.json"
-EXCEL_FILE = "Meine_Woerter_im_Kurs_Bangla.xlsx"
-
-# === Load Excel and initialize ===
-def load_excel():
-    try:
-        df = pd.read_excel(EXCEL_FILE)
-        df = df.dropna(subset=["German", "Bangla"])
-        vocab = {row["German"]: row["Bangla"] for _, row in df.iterrows()}
-        save_vocab(vocab)
-        return vocab
-    except Exception as e:
-        st.error(f"⚠️ Could not load Excel file: {e}")
-        return {}
-
-def load_vocab():
-    try:
-        with open(VOCAB_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}
-
-def save_vocab(vocab):
-    with open(VOCAB_FILE, "w", encoding="utf-8") as f:
-        json.dump(vocab, f, ensure_ascii=False, indent=4)
+# === Built-in Vocabulary (from Meine_Woerter_im_Kurs_Bangla.xlsx) ===
+vocab = {
+    "ansehen": {"bangla": "দেখা", "sentence": "আমি ছবিটা দেখি।"},
+    "das Bild, -er": {"bangla": "ছবি", "sentence": "ছবিটা সুন্দর।"},
+    "hören": {"bangla": "শোনা", "sentence": "আমি গান শুনি।"},
+    "noch einmal": {"bangla": "আবার একবার", "sentence": "অনুগ্রহ করে আবার একবার বলুন।"},
+    "ankreuzen": {"bangla": "টিক চিহ্ন দেওয়া", "sentence": "সঠিক উত্তরে টিক দিন।"},
+    "zuordnen": {"bangla": "মিলানো", "sentence": "শব্দগুলো মিলিয়ে দিন।"},
+    "ergänzen": {"bangla": "পূরণ করা", "sentence": "বাক্যটি পূর্ণ করুন।"},
+    "machen": {"bangla": "করা", "sentence": "আমি আমার বাড়ির কাজ করি।"},
+    "der Kurs, -e": {"bangla": "কোর্স / ক্লাস", "sentence": "কোর্সটি আকর্ষণীয়।"},
+    "sprechen": {"bangla": "কথা বলা", "sentence": "আমরা জার্মান বলি।"},
+    "lesen": {"bangla": "পড়া", "sentence": "সে বই পড়ে।"},
+    "schreiben": {"bangla": "লেখা", "sentence": "আমি আমার নাম লিখি।"},
+    "fragen": {"bangla": "জিজ্ঞেস করা", "sentence": "আমি শিক্ষককে প্রশ্ন করি।"},
+    "antworten": {"bangla": "উত্তর দেওয়া", "sentence": "সে আমার প্রশ্নের উত্তর দেয়।"},
+    "kommen": {"bangla": "আসা", "sentence": "আমি স্কুলে আসি।"},
+    "gehen": {"bangla": "যাওয়া", "sentence": "আমি বিশ্ববিদ্যালয়ে যাই।"},
+    "sehen": {"bangla": "দেখা", "sentence": "আমি টেলিভিশন দেখি।"},
+    "trinken": {"bangla": "পান করা", "sentence": "আমি পানি পান করি।"},
+    "essen": {"bangla": "খাওয়া", "sentence": "আমি আপেল খাই।"},
+    "wohnen": {"bangla": "বাস করা", "sentence": "আমি ব্রেমেনে থাকি।"},
+}
 
 # === Streamlit Config ===
 st.set_page_config(page_title="Deutsch Wörter Lernen", page_icon="🇩🇪", layout="centered")
 st.title("🇩🇪 Deutsch Wörter Lernen (German ↔ বাংলা)")
-st.caption("Learn German words from Excel, take a multiple-choice quiz, and see your result below!")
+st.caption("Learn German vocabulary with Bangla meanings and example sentences.")
 
-# === Sidebar Menu ===
-menu = st.sidebar.radio("📚 Menu", ["🏠 Home", "🎯 Quiz", "🗑️ Delete Word"])
+menu = st.sidebar.radio("📚 Menu", ["🏠 Word List", "🎯 Quiz"])
 
-# === Load Data ===
-vocab = load_excel()
-if not vocab:
-    st.warning("⚠️ No data loaded. Please make sure the Excel file exists and has columns: German | Bangla | Sentence.")
-    st.stop()
+# === Word List Page ===
+if menu == "🏠 Word List":
+    st.subheader("📘 German → Bangla Word List")
+    df = pd.DataFrame(
+        [{"🇩🇪 German": g, "🇧🇩 Bangla": v["bangla"], "🗣️ Example": v["sentence"]}
+         for g, v in vocab.items()]
+    )
+    st.dataframe(df, use_container_width=True)
+    st.success(f"Loaded {len(vocab)} words successfully!")
 
-# === Page 1: Home ===
-if menu == "🏠 Home":
-    st.subheader("📘 Word List (from Excel)")
-    st.dataframe(pd.DataFrame(list(vocab.items()), columns=["🇩🇪 German", "🇧🇩 Bangla"]))
-    st.success(f"✅ Loaded {len(vocab)} words from Excel successfully!")
-
-# === Page 2: Quiz ===
+# === Quiz Page ===
 elif menu == "🎯 Quiz":
-    st.subheader("🎯 Multiple Choice Quiz")
+    st.subheader("🎯 Multiple-Choice Quiz")
 
     num_questions = st.slider("Number of Questions:", 5, 20, 10)
     quiz_words = list(vocab.items())
@@ -60,57 +53,46 @@ elif menu == "🎯 Quiz":
     quiz_words = quiz_words[:num_questions]
 
     answers = {}
-    for idx, (german, bangla) in enumerate(quiz_words, start=1):
-        options = [bangla]  # correct
+
+    for idx, (german, info) in enumerate(quiz_words, start=1):
+        correct = info["bangla"]
+        sentence = info.get("sentence", "")
         wrong_opts = random.sample(
-            [b for b in vocab.values() if b != bangla],
-            min(3, len(vocab) - 1)
+            [v["bangla"] for k, v in vocab.items() if v["bangla"] != correct],
+            k=min(3, len(vocab) - 1)
         )
-        options.extend(wrong_opts)
+        options = wrong_opts + [correct]
         random.shuffle(options)
 
         st.markdown(f"**{idx}. What is the Bangla meaning of '{german}'?**")
+        if sentence:
+            st.caption(f"💬 Example: {sentence}")
+
         selected = st.radio(
             "Select your answer:",
             options,
             key=f"q_{idx}"
         )
-        answers[german] = (selected, bangla)
+        answers[german] = (selected, correct)
 
     st.divider()
 
-    # === Submit button ===
     if st.button("✅ Submit Quiz"):
-        correct = 0
+        correct_count = 0
+        results = []
         for german, (chosen, actual) in answers.items():
-            if chosen == actual:
-                correct += 1
-
-        st.success(f"🎯 Your total score: {correct}/{len(answers)} ✅")
-        st.progress(correct / len(answers))
-        st.balloons()
-
-        # Show result table
-        result_table = []
-        for german, (chosen, actual) in answers.items():
-            result_table.append({
+            is_correct = chosen == actual
+            if is_correct:
+                correct_count += 1
+            results.append({
                 "🇩🇪 German": german,
-                "Your Answer": chosen,
+                "Your Answer": chosen if chosen else "❌ Not answered",
                 "Correct Answer": actual,
-                "Result": "✔️" if chosen == actual else "❌"
+                "Result": "✔️" if is_correct else "❌"
             })
-        st.dataframe(pd.DataFrame(result_table))
 
-# === Page 3: Delete Word ===
-elif menu == "🗑️ Delete Word":
-    st.subheader("🗑️ Delete a Word from Vocabulary")
-    vocab = load_vocab()
-
-    if not vocab:
-        st.warning("No words found in JSON file.")
-    else:
-        word_to_delete = st.selectbox("Select a German word to delete:", list(vocab.keys()))
-        if st.button("Delete"):
-            del vocab[word_to_delete]
-            save_vocab(vocab)
-            st.success(f"❌ '{word_to_delete}' deleted successfully!")
+        score = correct_count / len(answers)
+        st.success(f"🎯 You got {correct_count} / {len(answers)} correct!")
+        st.progress(score)
+        st.balloons()
+        st.dataframe(pd.DataFrame(results))
