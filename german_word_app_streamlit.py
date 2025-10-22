@@ -18,7 +18,7 @@ vocab = {
 
 # === Streamlit setup ===
 st.set_page_config(page_title="🐰 বাংলা → German Game", page_icon="🇩🇪", layout="centered")
-st.title(🇧🇩 🎮 🇩🇪)
+st.title("🐰 🇧🇩 ➜ 🇩🇪 বাংলা → জার্মান শেখার গেম 🎮")
 st.caption("No repeats! Only wrong words come again — finish all to win 🏁")
 
 # === Initialize session ===
