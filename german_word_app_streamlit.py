@@ -1,11 +1,10 @@
-# --- imports always at the very top ---
+# --- Imports ---
 import streamlit as st
 import pandas as pd
 import random
 import time
 
-# === Embedded Vocabulary (Excel-free) ===
-# NOTE: শেষ আইটেমের পর আর কোন 'import' লিখবে না—এখানেই ডিকশনারি শেষ হবে।
+# === Embedded Vocabulary ===
 vocab = {
     "ansehen": {"bangla": "দেখা", "sentence": "Ich sehe das Bild."},
     "das Bild, -er": {"bangla": "ছবি", "sentence": "Das Bild ist schön."},
@@ -18,14 +17,14 @@ vocab = {
     "gehen": {"bangla": "যাওয়া", "sentence": "Ich gehe zur Uni."},
     "sprechen": {"bangla": "কথা বলা", "sentence": "Wir sprechen Deutsch."},
     "wohnen": {"bangla": "বাস করা", "sentence": "Ich wohne in Bremen."}
-}  # <-- ডিকশনারি এখানেই শেষ
+}
 
-# === Page setup ===
+# === Streamlit Page Setup ===
 st.set_page_config(page_title="বাংলা → German Game", page_icon="🇩🇪", layout="centered")
-st.title("🇧🇩 ➜ 🇩🇪 বাংলা থেকে German শেখার গেম")
-st.caption("Type the correct German word, beat the timer, gain XP, and level up!")
+st.title("🇧🇩 ➜ 🇩🇪 বাংলা থেকে German শেখার গেম 🎮")
+st.caption("⏱️ Type the correct German word before time runs out! Gain XP and level up!")
 
-# === Initialize session (runs once) ===
+# === Initialize Session State ===
 if "level" not in st.session_state:
     st.session_state.level = 1
     st.session_state.score = 0
@@ -37,14 +36,16 @@ if "level" not in st.session_state:
     st.session_state.start_time = time.time()
     st.session_state.hint_used = False
 
-def remaining_time(start, total=15):
-    return max(0, int(total - (time.time() - start)))
+# === Helper function for timer ===
+def remaining_time(start_time, total_time=15):
+    elapsed = time.time() - start_time
+    return max(0, int(total_time - elapsed))
 
-# === Game loop ===
+# === Game Loop ===
 if st.session_state.current_index < len(st.session_state.quiz_order):
     german, info = st.session_state.quiz_order[st.session_state.current_index]
     bangla = info["bangla"]
-    sentence = info.get("sentence", "")
+    sentence = info["sentence"]
 
     st.markdown(f"### 🎯 Level {st.session_state.level}")
     st.progress(min(1.0, st.session_state.correct / 5))
@@ -52,27 +53,31 @@ if st.session_state.current_index < len(st.session_state.quiz_order):
 
     st.markdown(f"**'{bangla}' শব্দটির জার্মান অনুবাদ লিখুন:**")
 
+    # Show hint if enabled
     if st.session_state.hint_used:
-        st.caption(f"💡 Hint (German sentence): {sentence}")
+        st.caption(f"💡 Hint: {sentence}")
 
-    # Timer display (simple pulse)
-    tbox = st.empty()
-    tbox.warning(f"⏱️ Time left: {remaining_time(st.session_state.start_time)}s")
+    # Timer display
+    remain = remaining_time(st.session_state.start_time)
+    timer_box = st.empty()
+    timer_box.warning(f"⏱️ Time left: {remain}s")
 
-    # User input (persistent per question)
+    # Input field (auto-saved by Streamlit)
     ans_key = f"ans_{st.session_state.current_index}"
-    default_val = st.session_state.get(ans_key, "")
-    ans = st.text_input("✍️ Type your German answer:", value=default_val, key=ans_key)
+    ans = st.text_input("✍️ Type your German answer:", key=ans_key)
 
+    # === Buttons ===
     col1, col2, col3 = st.columns(3)
+
+    # Hint Button
     with col1:
         if st.button("💡 Show Hint"):
             st.session_state.hint_used = True
             st.rerun()
+
+    # Submit Button
     with col2:
         if st.button("✅ Submit"):
-            # save latest value explicitly
-            st.session_state[ans_key] = ans
             if ans.strip().lower() == german.lower():
                 st.success("✅ Correct!")
                 st.session_state.score += 10
@@ -81,15 +86,19 @@ if st.session_state.current_index < len(st.session_state.quiz_order):
                 st.error(f"❌ Wrong! Correct answer: {german}")
                 st.session_state.wrong += 1
 
+            # Move to next question
             st.session_state.current_index += 1
             st.session_state.start_time = time.time()
             st.session_state.hint_used = False
 
+            # Level up
             if st.session_state.correct % 5 == 0 and st.session_state.correct != 0:
                 st.session_state.level += 1
                 st.balloons()
                 st.success(f"🏆 Level Up! You reached Level {st.session_state.level}!")
             st.rerun()
+
+    # Skip Button
     with col3:
         if st.button("⏭️ Skip"):
             st.session_state.current_index += 1
@@ -97,13 +106,15 @@ if st.session_state.current_index < len(st.session_state.quiz_order):
             st.session_state.hint_used = False
             st.rerun()
 
+# === Game Over ===
 else:
     st.balloons()
     st.success("🏁 Game Over!")
     st.metric("Total Score", st.session_state.score)
     st.metric("Correct Answers", st.session_state.correct)
     st.metric("Wrong Answers", st.session_state.wrong)
+
     if st.button("🔁 Restart Game"):
-        for k in list(st.session_state.keys()):
-            del st.session_state[k]
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
         st.rerun()
